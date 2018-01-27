@@ -1,151 +1,151 @@
-#include<cstdio>
-#include<iostream>
-template<typename T> void Swap(T& elem1, T& elem2) {
-    T other = elem1;
-    elem1 = elem2;
-    elem2 = other;
-}
+#include <iostream>
 
-template <typename T> class Point {
+template <typename T> class Node {
  public:
     T val;
-    Point *next;
-    Point(T val) {
+    Node *next;
+
+    Node() {
+        next = NULL;
+    }
+
+    Node(T val) {
         this->val = val;
         next = NULL;
     }
 };
 
 template<typename T> class List {
- public:
-    const size_t size() {
-        return size_val;
+public:
+    size_t size() const {
+        return sizeVal;
+    }
+
+    List(size_t sizeVal, Node<T> *first, Node<T> *last) {
+        this->sizeVal = sizeVal;
+        this->first = first;
+        this->last = last;
     }
 
     List() {
-        size_val = 0;
-        left = NULL;
-        right = NULL;
+        sizeVal = 0;
+        first = new Node<T>();
+        last = first;
     }
 
     ~List() {
-        Point<T> *cur = left, *cur1;
-        while (cur != NULL) {
-            cur1 = cur;
-            cur = cur->next;
-            delete(cur1);
+        if (first == NULL) {
+            return;
         }
-    }
 
-    void Add(T& val) {
-        if (right == NULL) {
-            right = new Point<T>(val);
-            left = right;
-            size_val = 1;
-        } else {
-            right->next = new Point<T>(val);
-            right = right->next;
-            ++size_val;
+        Node<T> *nextHead = first, *head;
+        while (nextHead != last) {
+            head = nextHead;
+            nextHead = nextHead->next;
+            delete head;
         }
+        delete(last);
     }
 
-    Point<T>* begin() const {
-        return left;
+    void Add(T val) {
+        last->val = val;
+        last->next = new Node<T>();
+        last = last->next;
+        ++sizeVal;
     }
 
-    Point<T>* end() const {
-        return right;
+    void updFirst(Node<T>* newFirst) {
+        first = newFirst;
+    }
+
+    Node<T>* begin() const {
+        return first;
+    }
+
+    Node<T>* end() const {
+        return last;
     }
 
  private:
-    Point<T> *left, *right;
-    size_t size_val;
+    Node<T> *first, *last;
+    size_t sizeVal;
 };
 
-template <typename T> std::ostream& operator << (std::ostream& out, const List<T> &ans) {
-        auto cur = ans.begin();
-        while (cur != ans.end()) {
-            out << cur->val << ' ';
-            cur = cur->next;
+template <typename T> std::ostream& operator << (std::ostream& out, const List<T> &outVal) {
+        auto element = outVal.begin();
+        while (element != outVal.end()) {
+            out << element->val << ' ';
+            element = element->next;
         }
 
-        out << ans.end()->val;
         return out;
 }
 
-template <typename T> void Sort(Point<T> *first, Point<T> *last) {
-        if (first == last)
+template <typename T> void Sort(List<T>& sortList) {
+        if (sortList.size() < 2) {
             return;
+        }
 
-        if (first->next == last) {
-            if (first->val > last->val) {
-                Swap(first->val, last->val);
+        if (sortList.size() == 2) {
+            auto newFirst = sortList.begin()->next;
+            if (sortList.begin()->val <= newFirst->val) {
+                return;
             }
+
+            sortList.begin()->next = sortList.end();
+            newFirst->next = sortList.begin();
+            sortList.updFirst(newFirst);
             return;
         }
 
-        size_t length_first = 1, length_second = 1;
-        Point<T> *cur, *mid1, *mid2, *cur1, *cur2, *fail;
-        for (cur = first; cur != last; ++length_first) {
-            cur = cur->next;
+
+        auto midNode = sortList.begin();
+        for (size_t i = 0; i < sortList.size() / 2; ++i) {
+            midNode = midNode->next;
         }
-
-        for (cur = first; length_second != length_first / 2; ++length_second) {
-            cur = cur->next;
+        auto firstList = List<T>(sortList.size() / 2, sortList.begin(), midNode);
+        auto lastList = List<T>(sortList.size() - sortList.size() / 2, midNode, sortList.end());
+        Sort(firstList);
+        Sort(lastList);
+        auto sortSize = sortList.size();
+        auto headFirst = firstList.begin();
+        auto headLast = lastList.begin();
+        Node<T>* head;
+        if (headFirst->val <= headLast->val) {
+            head = headFirst;
+            headFirst = headFirst->next;
+        } else {
+            head = headLast;
+            headLast = headLast->next;
         }
-
-        mid1 = cur;
-        mid2 = cur->next;
-        Sort(first, mid1);
-        Sort(mid2, last);
-
-
-        cur = first;
-        cur1 = first->next;
-        cur2 = mid2;
-        fail = mid1->next;
-        while ((cur1 != fail) || (cur2 != last)) {
-            if ((cur2 == last) || ((cur1 != fail) && (cur1->val <= cur2->val))) {
-                cur->next = cur1;
-                cur1 = cur1->next;
-                cur = cur->next;
+        auto tail = head;
+        while ((headFirst != firstList.end()) || (headLast != lastList.end())) {
+            if (headLast == lastList.end() || (headFirst != firstList.end() && headFirst->val <= headLast->val)) {
+                tail->next = headFirst;
+                headFirst = headFirst->next;
             } else {
-                cur->next = cur2;
-                cur2 = cur2->next;
-                cur = cur->next;
+                tail->next = headLast;
+                headLast = headLast->next;
             }
+            tail = tail->next;
         }
-
-        cur->next = last;
-        cur = first;
-        while ((cur->next != last) && (cur->next->val < cur->val)) {
-            Swap(cur->next->val, cur->val);
-            cur = cur->next;
-        }
-
-        T max_val = last->val;
-        for (cur = first; cur != last; cur = cur->next) {
-            if (cur->val > max_val) {
-                Swap(cur->val, max_val);
-            }
-        }
-
-        last->val = max_val;
-    }
+        tail->next = sortList.end();
+        firstList.updFirst(NULL);
+        lastList.updFirst(NULL);
+        sortList.updFirst(head);
+}
 
 
 int main() {
-    freopen("input.txt", "r", stdin);
-    freopen("output.txt", "w", stdout);
     int n, val;
-    List<int> input_file;
+    List<int> inputList;
     std::cin >> n;
     for (int i = 0; i < n; ++i) {
         std::cin >> val;
-        input_file.Add(val);
+        inputList.Add(val);
     }
 
-    Sort(input_file.begin(), input_file.end());
+    Sort(inputList);
 
-    std::cout << input_file << "\n";
+    std::cout << inputList << '\n';
 }
